@@ -12,49 +12,14 @@ class AlamofireRequestBuilderFactory: RequestBuilderFactory {
     }
 }
 
-// Store manager to retain its reference
-private var managerStore: [String: Alamofire.SessionManager] = [:]
+public let swaggerSessionManager = SessionManager.default
 
 open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
     required public init(method: String, URLString: String, parameters: [String : Any]?, isBody: Bool) {
         super.init(method: method, URLString: URLString, parameters: parameters, isBody: isBody)
     }
 
-    /**
-     May be overridden by a subclass if you want to control the session
-     configuration.
-     */
-    open func createSessionManager() -> Alamofire.SessionManager {
-        let configuration = URLSessionConfiguration.default
-        configuration.httpAdditionalHeaders = buildHeaders()
-        return Alamofire.SessionManager(configuration: configuration)
-    }
-
-    /**
-     May be overridden by a subclass if you want to control the Content-Type
-     that is given to an uploaded form part.
-
-     Return nil to use the default behavior (inferring the Content-Type from
-     the file extension).  Return the desired Content-Type otherwise.
-     */
-    open func contentTypeForFormPart(fileURL: URL) -> String? {
-        return nil
-    }
-
-    /**
-     May be overridden by a subclass if you want to control the request
-     configuration (e.g. to override the cache policy).
-     */
-    open func makeRequest(manager: SessionManager, method: HTTPMethod, encoding: ParameterEncoding) -> DataRequest {
-        return manager.request(URLString, method: method, parameters: parameters, encoding: encoding)
-    }
-
     override open func execute(_ completion: @escaping (_ response: Response<T>?, _ error: Error?) -> Void) {
-        let managerId:String = UUID().uuidString
-        // Create a new manager for each request to customize its request header
-        let manager = createSessionManager()
-        managerStore[managerId] = manager
-
         let encoding:ParameterEncoding = isBody ? JSONEncoding() : URLEncoding()
 
         let xMethod = Alamofire.HTTPMethod(rawValue: method)
@@ -62,7 +27,7 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
                                                            .map { $0.0 }
 
         if fileKeys.count > 0 {
-            manager.upload(multipartFormData: { mpForm in
+            swaggerSessionManager.upload(multipartFormData: { mpForm in
                 for (k, v) in self.parameters! {
                     switch v {
                     case let fileURL as URL:
@@ -90,28 +55,24 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
                     if let onProgressReady = self.onProgressReady {
                         onProgressReady(upload.progress)
                     }
-                    self.processRequest(request: upload, managerId, completion)
+                    self.processRequest(request: upload, completion)
                 case .failure(let encodingError):
                     completion(nil, ErrorResponse.Error(415, nil, encodingError))
                 }
             })
         } else {
-            let request = makeRequest(manager: manager, method: xMethod!, encoding: encoding)
+            let request = swaggerSessionManager.request(URLString, method: xMethod!, parameters: parameters, encoding: encoding)
             if let onProgressReady = self.onProgressReady {
                 onProgressReady(request.progress)
             }
-            processRequest(request: request, managerId, completion)
+            processRequest(request: request, completion)
         }
 
     }
 
-    private func processRequest(request: DataRequest, _ managerId: String, _ completion: @escaping (_ response: Response<T>?, _ error: Error?) -> Void) {
+    private func processRequest(request: DataRequest, _ completion: @escaping (_ response: Response<T>?, _ error: Error?) -> Void) {
         if let credential = self.credential {
             request.authenticate(usingCredential: credential)
-        }
-
-        let cleanupRequest = {
-            _ = managerStore.removeValue(forKey: managerId)
         }
 
         let validatedRequest = request.validate()
@@ -119,8 +80,6 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
         switch T.self {
         case is String.Type:
             validatedRequest.responseString(completionHandler: { (stringResponse) in
-                cleanupRequest()
-
                 if stringResponse.result.isFailure {
                     completion(
                         nil,
@@ -139,8 +98,6 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
             })
         case is Void.Type:
             validatedRequest.responseData(completionHandler: { (voidResponse) in
-                cleanupRequest()
-
                 if voidResponse.result.isFailure {
                     completion(
                         nil,
@@ -158,8 +115,6 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
             })
         case is Data.Type:
             validatedRequest.responseData(completionHandler: { (dataResponse) in
-                cleanupRequest()
-
                 if (dataResponse.result.isFailure) {
                     completion(
                         nil,
@@ -178,8 +133,6 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
             })
         default:
             validatedRequest.responseJSON(options: .allowFragments) { response in
-                cleanupRequest()
-
                 if response.result.isFailure {
                     completion(nil, ErrorResponse.Error(response.response?.statusCode ?? 500, response.data, response.result.error!))
                     return
