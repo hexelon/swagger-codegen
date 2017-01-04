@@ -22,7 +22,7 @@ import java.time.format.DateTimeFormatter;
 {{/java8}}
 import retrofit2.Converter;
 import retrofit2.Retrofit;
-{{#useRxJava}}import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;{{/useRxJava}}
+{{#useRxJava}}import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;{{/useRxJava}}
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.converter.scalars.ScalarsConverterFactory;
 
@@ -139,7 +139,7 @@ public class ApiClient {
         adapterBuilder = new Retrofit
                 .Builder()
                 .baseUrl(baseUrl)
-                {{#useRxJava}}.addCallAdapterFactory(RxJavaCallAdapterFactory.create()){{/useRxJava}}
+                {{#useRxJava}}.addCallAdapterFactory(RxJava2CallAdapterFactory.create()){{/useRxJava}}
                 .addConverterFactory(ScalarsConverterFactory.create())
                 .addConverterFactory(GsonCustomConverterFactory.create(gson));
     }

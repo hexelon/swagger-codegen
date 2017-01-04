@@ -2,7 +2,7 @@ package {{package}};
 
 import {{invokerPackage}}.CollectionFormats.*;
 
-{{#useRxJava}}import rx.Observable;{{/useRxJava}}
+{{#useRxJava}}import io.reactivex.Observable;{{/useRxJava}}
 {{^useRxJava}}import retrofit2.Call;{{/useRxJava}}
 import retrofit2.http.*;
 
