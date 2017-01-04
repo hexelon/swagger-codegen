@@ -152,8 +152,8 @@
     </dependency>
     <dependency>
       <groupId>com.squareup.retrofit2</groupId>
-      <artifactId>adapter-rxjava</artifactId>
-      <version>${retrofit-version}</version>
+      <artifactId>adapter-rxjava2</artifactId>
+      <version>2.1.1-SNAPSHOT</version>
     </dependency>
     {{/useRxJava}}
     
@@ -218,4 +218,16 @@
     <oltu-version>1.0.1</oltu-version>
     <junit-version>4.12</junit-version>
   </properties>
+  {{#useRxJava}}
+  <repositories>
+    <repository>
+      <id>oss-sonatype</id>
+      <name>oss-sonatype</name>
+      <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+  {{/useRxJava}}
 </project>
