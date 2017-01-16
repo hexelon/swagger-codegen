@@ -19,6 +19,18 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
         super.init(method: method, URLString: URLString, parameters: parameters, isBody: isBody)
     }
 
+    /**
+     May be overridden by a subclass if you want to control the Content-Type
+     that is given to an uploaded form part.
+
+     Return nil to use the default behavior (inferring the Content-Type from
+     the file extension).  Return the desired Content-Type otherwise.
+     */
+    open func contentTypeForFormPart(fileURL: URL) -> String? {
+        return nil
+    }
+
+
     override open func execute(_ completion: @escaping (_ response: Response<T>?, _ error: Error?) -> Void) {
         let encoding:ParameterEncoding = isBody ? JSONEncoding() : URLEncoding()
 
