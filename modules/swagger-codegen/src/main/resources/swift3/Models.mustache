@@ -10,8 +10,22 @@ protocol JSONEncodable {
     func encodeToJSON() -> Any
 }
 
-public enum ErrorResponse : Error {
-    case Error(Int, Data?, Error)
+public enum ErrorResponse : Error, CustomNSError {
+    case Error(code: Int, data: Data?, error: Error)
+
+    public var errorCode: Int {
+        switch self {
+        case .Error:
+            return 0
+        }
+    }
+
+    public var errorUserInfo: [String : AnyObject] {
+        switch self {
+        case .Error(let code, let data, let error):
+            return ["code": code as AnyObject, "data":data as AnyObject, "error":error as AnyObject]
+        }
+    }
 }
 
 open class Response<T> {
